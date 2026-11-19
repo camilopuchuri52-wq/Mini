@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#102b24">
+<title>Soccer Star — Prototipo</title>
+<style>
+:root{--bg:#102b24;--panel:#183b31;--lime:#b8f36b;--gold:#ffd66b;--white:#f7f8f2}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--white);font-family:system-ui,-apple-system,Segoe UI,sans-serif;touch-action:none}
+#app{height:100dvh;display:flex;flex-direction:column;max-width:900px;margin:auto;background:linear-gradient(160deg,#173d31,#0b211c)}
+header{height:62px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid #ffffff20}
+.brand{font-weight:950;letter-spacing:.8px;font-size:18px}.brand span{color:var(--lime)}
+.pill{background:#ffffff15;border:1px solid #ffffff25;border-radius:99px;padding:7px 11px;font-size:12px;font-weight:800}
+#screen{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
+#hud{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;gap:8px}
+.stat{background:#06171188;border:1px solid #ffffff20;border-radius:12px;padding:7px 11px;text-align:center;min-width:76px}
+.stat small{display:block;color:#c4d7ca;font-size:10px;text-transform:uppercase;letter-spacing:1px}.stat b{font-size:18px}
+#fieldWrap{position:relative;flex:1;min-height:240px;margin:0 9px 8px;border-radius:18px;overflow:hidden;border:1px solid #ffffff30;background:#347d45}
+canvas{width:100%;height:100%;display:block}
+#hint{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:#061711c9;padding:8px 13px;border-radius:99px;font-size:12px;white-space:nowrap;border:1px solid #ffffff2c;pointer-events:none}
+#bottom{padding:8px 14px calc(12px + env(safe-area-inset-bottom));display:flex;gap:9px;align-items:center;justify-content:space-between}
+button{border:0;border-radius:13px;padding:12px 15px;font-weight:850;font-size:13px;color:#12231a;background:var(--lime);box-shadow:0 4px 0 #6e9c3a;cursor:pointer}
+button.secondary{background:#ffffff16;color:white;border:1px solid #ffffff30;box-shadow:none}
+button:active{transform:translateY(2px);box-shadow:none}
+#settings{position:absolute;inset:0;background:#061711d9;display:none;align-items:center;justify-content:center;padding:20px;z-index:5}
+.sheet{width:min(100%,420px);background:#17392f;border:1px solid #ffffff35;border-radius:22px;padding:20px;box-shadow:0 20px 60px #0008}
+.sheet h2{margin:0 0 4px}.muted{color:#b8c9bd;font-size:13px;line-height:1.45}
+.row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px 0;border-bottom:1px solid #ffffff20}
+.switch{width:54px;height:30px;border-radius:99px;background:#53665b;padding:3px;transition:.2s;flex:none}
+.switch i{display:block;width:24px;height:24px;background:white;border-radius:50%;transition:.2s}
+.switch.on{background:#83c94b}.switch.on i{transform:translateX(24px)}
+#toast{position:absolute;top:72px;left:50%;transform:translateX(-50%);background:#061711e8;border:1px solid #ffffff30;border-radius:99px;padding:9px 14px;font-size:13px;font-weight:800;display:none;z-index:3;white-space:nowrap}
+#menu{position:absolute;inset:0;z-index:4;background:linear-gradient(160deg,#173d31,#081c17);display:flex;align-items:center;justify-content:center;padding:22px}
+.menuCard{width:min(100%,440px);text-align:center;background:#ffffff0b;border:1px solid #ffffff25;border-radius:25px;padding:26px 20px}
+.ballMark{font-size:56px}.menuCard h1{font-size:30px;line-height:1.05;margin:8px 0}.menuCard p{color:#c1d2c6;font-size:14px;line-height:1.5}
+.menuBtns{display:grid;gap:12px;margin-top:22px}
+#result{position:absolute;inset:0;background:#061711c9;display:none;align-items:center;justify-content:center;z-index:3;padding:20px}
+.resultCard{background:#17392f;border:1px solid #ffffff35;border-radius:22px;padding:24px;text-align:center;width:min(100%,340px)}
+.resultCard strong{font-size:38px;display:block;color:var(--lime)}
+@media(min-width:700px){#fieldWrap{margin:0 18px 12px}header{padding:0 22px}#bottom{padding-left:22px;padding-right:22px}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="brand">SOCCER <span>STAR</span></div><div class="pill">PROTOTIPO 01</div><button class="secondary" id="settingsBtn" style="padding:8px 12px">⚙ Configuración</button></header>
+<div id="screen">
+<div id="hud">
+ <div class="stat"><small>Goles</small><b id="goals">0</b></div>
+ <div class="stat"><small>Intentos</small><b id="shots">0</b></div>
+ <div class="stat"><small>Precisión</small><b id="accuracy">—</b></div>
+</div>
+<div id="fieldWrap"><canvas id="game"></canvas><div id="hint">Arrastrá desde la pelota hacia donde quieras tirar</div></div>
+<div id="bottom"><button class="secondary" id="resetBtn">↻ Reiniciar</button><div class="pill" id="modeLabel">Tiro libre · 1 contra 1</div><button id="shootBtn">TIRAR</button></div>
+<div id="toast"></div>
+<div id="settings"><div class="sheet">
+ <h2>⚙ Configuración</h2><p class="muted">Personalizá cómo se comportan tus tiros.</p>
+ <div class="row"><div><b>Apuntar siempre al arco</b><div class="muted">El tiro se dirige automáticamente a una esquina.</div></div><div class="switch" id="autoSwitch"><i></i></div></div>
+ <div class="row"><div><b>Ayuda de apuntado</b><div class="muted">Muestra una guía de dirección antes del tiro.</div></div><div class="switch on" id="guideSwitch"><i></i></div></div>
+ <p class="muted">Los cambios se aplican inmediatamente.</p><button id="closeSettings" style="width:100%;margin-top:8px">LISTO</button>
+ </div></div>
+<div id="result"><div class="resultCard"><div style="font-size:36px">⚽</div><h2 id="resultTitle">¡GOOOL!</h2><strong id="resultText">1 / 1</strong><p class="muted" id="resultSub">Buen disparo.</p><button id="continueBtn" style="width:100%;margin-top:10px">SEGUIR JUGANDO</button></div></div>
+<div id="menu"><div class="menuCard"><div class="ballMark">⚽</div><h1>SOCCER<br><span style="color:var(--lime)">STAR</span></h1><p>Un desafío de fútbol en perspectiva. Apuntá, ajustá la potencia y vencé al arquero.</p><div class="menuBtns"><button id="playBtn">JUGAR PARTIDO</button><button class="secondary" id="menuSettings">CONFIGURACIÓN</button></div><p style="font-size:11px">Prototipo original para navegador · progreso de esta sesión</p></div></div>
+</div>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=0,H=0,dpr=1,goals=0,shots=0,autoAim=false,guide=true,playing=false,shot=null,drag=null,keeper={x:.5,target:.5},ball={x:.5,y:.83},lastGoal=false,toastTimer;
+function resize(){const r=canvas.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,2);W=r.width;H=r.height;canvas.width=W*dpr;canvas.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0);draw()}
+window.addEventListener('resize',resize);
+function goalBox(){return {x:W*.19,y:H*.16,w:W*.62,h:H*.20}}
+function draw(){
+ if(!W||!H)return;
+ ctx.clearRect(0,0,W,H);
+ let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#3d9251');g.addColorStop(1,'#23653c');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ // field stripes
+ for(let i=0;i<8;i++){ctx.fillStyle=i%2?'#ffffff08':'#001d0d0a';ctx.fillRect(0,H*.38+i*H*.085,W,H*.085)}
+ // perspective boundary and markings
+ ctx.strokeStyle='#eaffdfb8';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(W*.06,H*.97);ctx.lineTo(W*.19,H*.13);ctx.lineTo(W*.81,H*.13);ctx.lineTo(W*.94,H*.97);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(W*.19,H*.48);ctx.lineTo(W*.81,H*.48);ctx.stroke();
+ ctx.beginPath();ctx.ellipse(W*.5,H*.48,W*.14,H*.065,0,0,Math.PI*2);ctx.stroke();
+ // penalty box
+ ctx.beginPath();ctx.moveTo(W*.30,H*.37);ctx.lineTo(W*.70,H*.37);ctx.lineTo(W*.76,H*.18);ctx.lineTo(W*.24,H*.18);ctx.closePath();ctx.stroke();
+ // goal
+ const b=goalBox();ctx.fillStyle='#173b2b';ctx.fillRect(b.x,b.y,b.w,b.h);
+ ctx.strokeStyle='#f3f6e9';ctx.lineWidth=5;ctx.strokeRect(b.x,b.y,b.w,b.h);
+ ctx.strokeStyle='#ffffff66';ctx.lineWidth=1;
+ for(let i=1;i<10;i++){let x=b.x+b.w*i/10;ctx.beginPath();ctx.moveTo(x,b.y);ctx.lineTo(x,b.y+b.h);ctx.stroke()}
+ for(let i=1;i<5;i++){let y=b.y+b.h*i/5;ctx.beginPath();ctx.moveTo(b.x,y);ctx.lineTo(b.x+b.w,y);ctx.stroke()}
+ // keeper shadow and body
+ let kx=b.x+b.w*keeper.x, ky=b.y+b.h*.63;
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(kx,ky+13,22,7,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#f1b37e';ctx.beginPath();ctx.arc(kx,ky-20,10,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#f3d34e';ctx.fillRect(kx-11,ky-10,22,27);
+ ctx.strokeStyle='#f3d34e';ctx.lineWidth=7;ctx.lineCap='round';
+ ctx.beginPath();ctx.moveTo(kx-8,ky-3);ctx.lineTo(kx-22,ky+8);ctx.moveTo(kx+8,ky-3);ctx.lineTo(kx+22,ky+8);ctx.stroke();
+ ctx.strokeStyle='#172b26';ctx.lineWidth=6;ctx.beginPath();ctx.moveTo(kx-5,ky+16);ctx.lineTo(kx-9,ky+31);ctx.moveTo(kx+5,ky+16);ctx.lineTo(kx+9,ky+31);ctx.stroke();
+ // shooter
+ const px=W*.5,py=H*.72;
+ ctx.fillStyle='#0004';ctx.beginPath();ctx.ellipse(px,py+30,24,8,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#e8aa79';ctx.beginPath();ctx.arc(px,py-23,11,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#f5f4eb';ctx.fillRect(px-12,py-12,24,32);
+ ctx.fillStyle='#d94a42';ctx.fillRect(px-12,py-1,24,5);
+ ctx.strokeStyle='#f5f4eb';ctx.lineWidth=7;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(px-9,py-5);ctx.lineTo(px-20,py+13);ctx.moveTo(px+9,py-5);ctx.lineTo(px+20,py+13);ctx.stroke();
+ ctx.strokeStyle='#1a2c25';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(px-6,py+19);ctx.lineTo(px-10,py+39);ctx.moveTo(px+6,py+19);ctx.lineTo(px+10,py+39);ctx.stroke();
+ // ball
+ let bx=ball.x*W,by=ball.y*H;
+ ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(bx,by+8,12,5,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(bx,by,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#202c27';ctx.lineWidth=1.5;ctx.stroke();
+ ctx.fillStyle='#202c27';ctx.beginPath();ctx.arc(bx,by,3,0,Math.PI*2);ctx.fill();
+ if(drag&&guide&&!shot){ctx.strokeStyle='#d9ff9b';ctx.lineWidth=3;ctx.setLineDash([7,5]);ctx.beginPath();ctx.moveTo(bx,by);ctx.lineTo(drag.x,drag.y);ctx.stroke();ctx.setLineDash([]);ctx.fillStyle='#d9ff9b';ctx.beginPath();ctx.arc(drag.x,drag.y,5,0,Math.PI*2);ctx.fill()}
+ if(shot){ctx.fillStyle='#fff';ctx.font='bold 12px system-ui';ctx.fillText('●',shot.x*W-4,shot.y*H-10)}
+}
+function updateHud(){$('goals').textContent=goals;$('shots').textContent=shots;$('accuracy').textContent=shots?Math.round(goals/shots*100)+'%':'—'}
+function toast(s){$('toast').textContent=s;$('toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.display='none',1600)}
+function openSettings(){$('settings').style.display='flex'}
+function closeSettings(){$('settings').style.display='none'}
+function switcher(el,on){el.classList.toggle('on',on)}
+$('settingsBtn').onclick=openSettings;$('menuSettings').onclick=openSettings;$('closeSettings').onclick=closeSettings;
+$('autoSwitch').onclick=()=>{autoAim=!autoAim;switcher($('autoSwitch'),autoAim);toast(autoAim?'Apuntado automático activado':'Apuntado automático desactivado')};
+$('guideSwitch').onclick=()=>{guide=!guide;switcher($('guideSwitch'),guide);draw()};
+function start(){playing=true;$('menu').style.display='none';goals=0;shots=0;shot=null;ball={x:.5,y:.83};keeper.x=.5;updateHud();resize()}
+$('playBtn').onclick=start;
+function reset(){shot=null;ball={x:.5,y:.83};keeper.x=.5;drag=null;draw()}
+$('resetBtn').onclick=reset;
+$('shootBtn').onclick=()=>{if(!playing||shot)return;const b=goalBox();launch({x:W*.5,y:H*.72},{x:W*(autoAim?(Math.random()<.5?.30:.70):.5),y:H*.24})};
+function point(e){const r=canvas.getBoundingClientRect();return{x:e.clientX-r.left,y:e.clientY-r.top}}
+canvas.addEventListener('pointerdown',e=>{if(!playing||shot)return;const p=point(e);const bx=ball.x*W,by=ball.y*H;if(Math.hypot(p.x-bx,p.y-by)<55){drag={x:p.x,y:p.y};canvas.setPointerCapture(e.pointerId);draw()}});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;drag=point(e);draw()});
+canvas.addEventListener('pointerup',e=>{if(!drag)return;const p=point(e);const from={x:ball.x*W,y:ball.y*H};drag=null;launch(from,p)});
+function launch(from,to){
+ if(!playing||shot)return;
+ const b=goalBox();
+ let tx=to.x/W,ty=to.y/H;
+ if(autoAim){tx=Math.random()<.5?.30:.70;ty=.24}
+ // gesture determines power; target is clamped to goal area
+ const dx=to.x-from.x,dy=to.y-from.y;
+ const power=Math.max(.55,Math.min(1.5,Math.hypot(dx,dy)/Math.max(90,H*.32)));
+ tx=Math.max(.22,Math.min(.78,tx));ty=Math.max(.17,Math.min(.37,ty));
+ shots++;updateHud();
+ const targetX=autoAim?tx:tx;
+ const keeperTarget=Math.max(.16,Math.min(.84,targetX+(Math.random()-.5)*.28));
+ keeper.target=keeperTarget;
+ const saved=Math.abs(keeperTarget-targetX)<.16 && Math.random()<.58;
+ shot={x:from.x/W,y:from.y/H,tx:targetX,ty,power,t:0,duration:Math.max(.38,.72-power*.15),saved};
+ toast(autoAim?'¡Tiro teledirigido!':'¡Disparo!');
+ animate();
+}
+let raf=0;
+function animate(){
+ cancelAnimationFrame(raf);
+ const step=()=>{
+  if(!shot)return;
+  shot.t+=1/60;let p=Math.min(1,shot.t/shot.duration);let ease=1-Math.pow(1-p,2);
+  ball.x=.5+(shot.tx-.5)*ease;ball.y=.83+(shot.ty-.83)*ease;
+  keeper.x+=(keeper.target-keeper.x)*.10;
+  draw();
+  if(p<1){raf=requestAnimationFrame(step);return}
+  const scored=!shot.saved;
+  if(scored){goals++;$('resultTitle').textContent='¡GOOOL!';$('resultSub').textContent='La clavaste en el ángulo.'}
+  else{$('resultTitle').textContent='¡ATAJÓ EL ARQUERO!';$('resultSub').textContent='El arquero adivinó tu disparo.'}
+  updateHud();$('resultText').textContent=goals+' / '+shots;$('result').style.display='flex';
+ };
+ raf=requestAnimationFrame(step);
+}
+$('continueBtn').onclick=()=>{$('result').style.display='none';reset()};
+resize();
+})();
+</script>
+</body>
+</html>
